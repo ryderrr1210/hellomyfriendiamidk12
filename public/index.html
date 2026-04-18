@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AzrielGPT</title>
+<link rel="icon" href="/logo.png" type="image/png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-main: #050505;
+    --bg-glass: rgba(20, 20, 22, 0.65);
+    --bg-input: rgba(255, 255, 255, 0.03);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --accent-primary: #ff3366;
+    --accent-glow: rgba(255, 51, 102, 0.4);
+    --text-primary: #f2f2f2;
+    --text-secondary: #a0a0a0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    height: 100dvh; /* Dynamic viewport height fixes the mobile clipping issue! */
+    display: flex;
+    overflow: hidden;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(255, 51, 102, 0.03), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(100, 51, 255, 0.03), transparent 25%);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+
+  .sidebar {
+    width: 280px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    z-index: 10;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .brand img {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .brand h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #fff, #ffaeae);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .new-chat-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-family: 'Outfit';
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+  }
+
+  .new-chat-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .chat-history {
+    margin-top: 30px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .chat-item {
+    padding: 12px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chat-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+  }
+
+  .chat-item.active {
+    background: rgba(255, 51, 102, 0.1);
+    color: var(--accent-primary);
+    font-weight: 500;
+  }
+
+  .model-toggle {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-subtle);
+  }
+  .model-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .model-btn.active {
+    background: var(--bg-glass);
+    color: var(--text-primary);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 0;
+    scroll-behavior: smooth;
+  }
+
+  .messages-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .message {
+    display: flex;
+    gap: 16px;
+    animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
+    animation-fill-mode: forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .avatar.user {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  .avatar.assistant {
+    background: linear-gradient(135deg, var(--accent-primary), #ff6b6b);
+    color: #fff;
+    box-shadow: 0 4px 15px var(--accent-glow);
+    padding: 2px;
+  }
+  
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .message-content {
+    flex: 1;
+    line-height: 1.6;
+    font-size: 15px;
+    color: #e4e4e4;
+  }
+
+  .message-content p { margin-bottom: 12px; }
+  .message-content p:last-child { margin-bottom: 0; }
+  
+  .message-content pre {
+    background: #000;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    margin: 12px 0;
+    font-family: monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .message-content code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #ffd166;
+  }
+  
+  .chat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+  }
+  .chat-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .del-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.2);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .del-btn:hover {
+    color: #ff3366;
+    background: rgba(255,51,102,0.1);
+  }
+
+  .msg-actions {
+    position: absolute;
+    bottom: -15px;
+    right: 15px;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  
+  .message:hover .msg-actions {
+    opacity: 1;
+  }
+
+  .msg-btn {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    padding: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .msg-btn:hover {
+    color: var(--accent-primary);
+    border-color: rgba(255, 51, 102, 0.5);
+    background: rgba(255, 51, 102, 0.1);
+  }
+
+  .code-wrapper {
+    background: #0d0d0d;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .code-lang {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .code-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .code-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+  .code-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+  .message-content pre { margin: 0; border: none; border-radius: 0; background: transparent; padding: 16px; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 13px; }
+  
+  .input-wrapper {
+    padding: 0 20px 40px;
+    background: linear-gradient(to top, var(--bg-main) 70%, transparent);
+  }
+
+  .input-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .chat-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 16px 60px 16px 50px;
+    color: var(--text-primary);
+    font-family: 'Outfit';
+    font-size: 15px;
+    resize: none;
+    outline: none;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    min-height: 54px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .chat-input:focus {
+    border-color: rgba(255, 51, 102, 0.5);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 40px rgba(255, 51, 102, 0.1);
+  }
+
+  .send-btn {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--accent-primary);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+
+  .send-btn:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .stop-btn {
+    background: #ff3b30 !important;
+    color: #fff;
+    border-radius: 10px;
+    animation: pulseStop 2s infinite;
+  }
+
+  @keyframes pulseStop {
+    0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+  }
+
+  .action-btn {
+    position: absolute;
+    left: 14px;
+    bottom: 15px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-btn:hover {
+    color: var(--accent-primary);
+    transform: scale(1.1);
+  }
+
+  .typing {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    height: 24px;
+  }
+  .typing span {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    animation: typingPulse 1.4s infinite ease-in-out both;
+  }
+  .typing span:nth-child(1) { animation-delay: -0.32s; }
+  .typing span:nth-child(2) { animation-delay: -0.16s; }
+  
+  @keyframes typingPulse {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Empty State */
+  .empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .empty-state img {
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
+    box-shadow: 0 0 40px var(--accent-glow);
+    animation: shine 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes shine {
+    from { 
+      box-shadow: 0 0 20px rgba(255, 51, 102, 0.2), inset 0 0 10px rgba(255, 255, 255, 0.05); 
+      filter: brightness(1);
+    }
+    to { 
+      box-shadow: 0 0 80px rgba(255, 51, 102, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.2); 
+      filter: brightness(1.2);
+    }
+  }
+
+  .empty-state h2 {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  /* Mobile Responsive */
+  .mobile-header {
+    display: none;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 15px 20px;
+    background: var(--bg-glass);
+    border-bottom: 1px solid var(--border-subtle);
+    backdrop-filter: blur(10px);
+    z-index: 5;
+  }
+  .hamburger {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 24px;
+    cursor: pointer;
+    margin-right: 15px;
+  }
+  @media (max-width: 768px) {
+    .sidebar {
+      position: absolute;
+      left: -300px;
+      height: 100%;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+    }
+    .sidebar.open {
+      left: 0;
+    }
+    .mobile-header {
+      display: flex;
+    }
+    .brand {
+      margin-bottom: 20px;
+    }
+    .messages-inner, .input-inner {
+      padding: 0 10px;
+    }
+    .input-wrapper {
+      padding: 0 10px 15px; /* Brings the input bar up above mobile navigation arcs */
+    }
+    .chat-input {
+      font-size: 16px; /* Prevents iOS auto-zoom on focus */
+    }
+  }
+</style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="/logo.png" alt="Logo">
+      <h1>AzrielGPT</h1>
+    </div>
+    
+    <div class="model-toggle">
+      <button id="modelFast" class="model-btn" onclick="setModel('fast')">Fast</button>
+      <button id="modelPro" class="model-btn active" onclick="setModel('pro')">Pro</button>
+    </div>
+
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New Chat
+    </button>
+    
+    <div class="chat-history" id="chatList">
+      <!-- Chat items inserted here -->
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="mobile-header">
+      <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+      <h2 style="font-size:18px; font-weight:600; background: linear-gradient(90deg, #fff, #ffaeae); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AzrielGPT</h2>
+    </div>
+    
+    <div class="empty-state" id="emptyState" onclick="document.querySelector('.sidebar').classList.remove('open')">
+      <img src="/logo.png" alt="Logo">
+      <h2>How can I help you today?</h2>
+    </div>
+
+    <div class="messages-container" id="messagesContainer" onclick="document.querySelector('.sidebar').classList.remove('open')">
+      <div class="messages-inner" id="messagesInner">
+        <!-- Messages inserted here -->
+      </div>
+    </div>
+
+    <div class="input-wrapper">
+      <div class="input-inner">
+        <div id="attachmentsStaging" style="display:flex; gap:10px; padding: 0 20px 10px; flex-wrap: wrap;"></div>
+        <textarea 
+          id="messageInput" 
+          class="chat-input" 
+          placeholder="Message AzrielGPT..." 
+          rows="1"
+          onkeydown="handleKeyDown(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        
+        <label for="fileUpload" class="action-btn" title="Attach Code/File/Image">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+        </label>
+        <input type="file" id="fileUpload" style="display:none" multiple onchange="handleFileUpload(event)">
+
+        <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+<script>
+  // LO: If testing on mobile, just visit your netlify link like this:
+  // https://your-site.netlify.app/?api=https://your-localtunnel-url.loca.lt
+  let urlParams = new URLSearchParams(window.location.search);
+  let API_BASE = urlParams.get('api') || ''; 
+
+  // Auto-detect if opened directly via File Explorer on PC, or on Netlify without a tunnel parameter
+  if (!API_BASE && (window.location.protocol === 'file:' || window.location.hostname.includes('netlify.app'))) {
+    API_BASE = 'http://127.0.0.1:3000'; // Target local Node proxy automatically
+  }
+
+  let currentMessages = [];
+  let isWaiting = false;
+  let currentChatId = Date.now();
+  let stagedImages = [];
+  let currentController = null;
+  window.currentTypeWriter = null;
+  let currentModelType = 'pro';
+
+  const messagesInner = document.getElementById('messagesInner');
+  const emptyState = document.getElementById('emptyState');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesContainer = document.getElementById('messagesContainer');
+  const chatList = document.getElementById('chatList');
+
+  function setModel(type) {
+    currentModelType = type;
+    document.getElementById('modelFast').classList.remove('active');
+    document.getElementById('modelPro').classList.remove('active');
+    document.getElementById(type === 'fast' ? 'modelFast' : 'modelPro').classList.add('active');
+  }
+
+  // Load chats on boot
+  window.onload = () => {
+    updateSidebar();
+    // Load most recent chat if it exists
+    let saved = JSON.parse(localStorage.getItem('azriel_chats') || '{}');
+    let sortedKeys = Object.keys(saved).sort((a,b) => saved[b].updated - saved[a].updated);
+    if(sortedKeys.length > 0) {
+      loadChat(sortedKeys[0]);
+    }
+  };
+
+  function updateSidebar() {
+    chatList.innerHTML = '';
+    let saved = JSON.parse(localStorage.getItem('azriel_chats') || '{}');
+    let sortedKeys = Object.keys(saved).sort((a,b) => saved[b].updated - saved[a].updated);
+    for (let id of sortedKeys) {
+      let div = document.createElement('div');
+      div.className = 'chat-item ' + (id == currentChatId ? 'active' : '');
+      div.innerHTML = `
+        <span class="chat-title" onclick="loadChat('${id}')">${saved[id].title || "New Chat"}</span>
+        <button class="del-btn" onclick="deleteChat('${id}', event)" title="Delete">✕</button>
+      `;
+      chatList.appendChild(div);
+    }
+  }
+
+  function deleteChat(id, e) {
+    if(e) e.stopPropagation();
+    let saved = JSON.parse(localStorage.getItem('azriel_chats') || '{}');
+    delete saved[id];
+    localStorage.setItem('azriel_chats', JSON.stringify(saved));
+    if(currentChatId == id) {
+      newChat();
+    } else {
+      updateSidebar();
+    }
+  }
+
+  function saveChats() {
+    let saved = JSON.parse(localStorage.getItem('azriel_chats') || '{}');
+    if (currentMessages.length > 0) {
+      // Create title from first user message
+      let firstUserMsg = currentMessages.find(m => m.role === 'user');
+      let titleText = firstUserMsg ? firstUserMsg.content.substring(0, 30) : "Chat";
+      if(firstUserMsg && firstUserMsg.content.length > 30) titleText += '...';
+
+      saved[currentChatId] = {
+        title: titleText,
+        messages: currentMessages,
+        updated: Date.now()
+      };
+      localStorage.setItem('azriel_chats', JSON.stringify(saved));
+      updateSidebar();
+    }
+  }
+
+  function loadChat(id) {
+    let saved = JSON.parse(localStorage.getItem('azriel_chats') || '{}');
+    if (saved[id]) {
+      currentChatId = id;
+      currentMessages = saved[id].messages;
+      refreshChatUI();
+    }
+  }
+
+  function refreshChatUI() {
+    emptyState.style.display = currentMessages.length === 0 ? 'flex' : 'none';
+    messagesInner.innerHTML = '';
+    currentMessages.forEach((msg, idx) => {
+      const div = document.createElement('div');
+      div.className = 'message';
+      const isAssistant = msg.role === 'assistant';
+      div.innerHTML = `
+        <div class="avatar ${isAssistant ? 'assistant' : 'user'}">
+          ${isAssistant ? '<img src="/logo.png" alt="Assistant">' : 'U'}
+        </div>
+        <div class="message-content">
+          ${formatText(msg.content)}
+        </div>
+        <div class="msg-actions">
+          <button class="msg-btn" onclick="copyMessageText(${idx})" title="Copy">Copy</button>
+          ${isAssistant 
+            ? `<button class="msg-btn" onclick="regenerateMessage(${idx})" title="Regenerate">Regenerate</button>` 
+            : `<button class="msg-btn" onclick="revertMessage(${idx})" title="Edit / Revert">Edit</button>`}
+        </div>
+      `;
+      messagesInner.appendChild(div);
+    });
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    updateSidebar();
+  }
+
+  function revertMessage(index) {
+    // Cut history exactly to this user's message
+    let text = currentMessages[index].content;
+    currentMessages = currentMessages.slice(0, index);
+    
+    // Fill text back in input box
+    messageInput.value = text;
+    autoResize(messageInput);
+    
+    // Refresh GUI and Storage
+    saveChats();
+    refreshChatUI();
+  }
+
+  function regenerateMessage(index) {
+    // To regenerate, we chop off the assistant's output and everything after it.
+    // Then we trigger sending with the last user's prompt!
+    if (index === 0) return; // shouldn't happen unless assistant spoke first
+    let lastUserMessageIndex = index - 1;
+    let text = currentMessages[lastUserMessageIndex].content;
+    
+    // Slice off the user message as well because sendMessage will inject it again
+    currentMessages = currentMessages.slice(0, lastUserMessageIndex);
+    
+    // Start generating sequence
+    messageInput.value = text;
+    sendMessage();
+  }
+
+  function copyMessageText(index) {
+    if (currentMessages[index]) {
+      navigator.clipboard.writeText(currentMessages[index].content);
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight) + 'px';
+    if(el.value.trim() === '') el.style.height = '54px';
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function newChat() {
+    currentMessages = [];
+    currentChatId = Date.now();
+    messagesInner.innerHTML = '';
+    emptyState.style.display = 'flex';
+    updateSidebar();
+  }
+
+  function formatText(text) {
+    let blocks = text.split(/```/);
+    let html = '';
+    for(let i=0; i<blocks.length; i++) {
+      if(i % 2 === 0) {
+        let t = blocks[i].replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // Render Grok citations cleanly
+        t = t.replace(/&lt;grok:render[^&]*type="render_inline_citation"[^&]*&gt;&lt;argument name="citation_id"&gt;(\d+)&lt;\/argument&gt;&lt;\/grok:render&gt;/g, '<sup style="color:var(--accent-primary); font-size:11px; margin-left:2px; font-weight:600;" title="Citation">[$1]</sup>');
+        
+        // Hide ugly streaming XML cards with a beautiful active placeholder
+        let placeholder = text.includes('![Generated Image]') ? '' : '<br><br><span style="color:var(--accent-primary); animation: shine 2s infinite; font-style: italic; font-weight: 500;">✨ Generating Image...</span>';
+        t = t.replace(/&lt;grok:render[\s\S]*?&lt;\/grok:render&gt;/g, placeholder);
+        t = t.replace(/&lt;grok:render[\s\S]*$/g, placeholder);
+
+        t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+        t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; max-height: 400px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--border-subtle); display: block; object-fit: contain;">');
+        t = t.split('\n').map(l => l.trim() ? `<p>${l}</p>` : '<br>').join('');
+        html += t;
+      } else {
+        let lines = blocks[i].split('\n');
+        let lang = lines[0].trim();
+        let code = lines.slice(1).join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += `
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span class="code-lang">${lang || 'code'}</span>
+              <div class="code-actions">
+                <button class="code-btn" onclick="copyCode(this)">Copy</button>
+                <button class="code-btn" onclick="downloadCode(this, '${lang || 'txt'}')">Download</button>
+              </div>
+            </div>
+            <pre><code>${code}</code></pre>
+          </div>
+        `;
+      }
+    }
+    return html;
+  }
+
+  function copyCode(btn) {
+    let code = btn.closest('.code-wrapper').querySelector('code').innerText;
+    navigator.clipboard.writeText(code);
+    let original = btn.innerText;
+    btn.innerText = 'Copied!';
+    setTimeout(() => btn.innerText = original, 2000);
+  }
+
+  function downloadCode(btn, lang) {
+    let code = btn.closest('.code-wrapper').querySelector('code').innerText;
+    let blob = new Blob([code], { type: 'text/plain' });
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'snippet.' + (lang || 'txt');
+    a.click();
+  }
+
+  function appendMessage(role, content, stream = false) {
+    emptyState.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.style.position = 'relative'; // so msg-actions align right
+    
+    const isAssistant = role === 'assistant';
+    const msgId = currentMessages.length - 1;
+    
+    div.innerHTML = `
+      <div class="avatar ${isAssistant ? 'assistant' : 'user'}">
+        ${isAssistant ? '<img src="/logo.png" alt="Assistant">' : 'U'}
+      </div>
+      <div class="message-content"></div>
+      <div class="msg-actions">
+        <button class="msg-btn" onclick="copyMessageText(${msgId})" title="Copy">Copy</button>
+        ${isAssistant 
+          ? `<button class="msg-btn" onclick="regenerateMessage(${msgId})" title="Regenerate">Regenerate</button>` 
+          : `<button class="msg-btn" onclick="revertMessage(${msgId})" title="Edit / Revert">Edit</button>`}
+      </div>
+    `;
+    
+    messagesInner.appendChild(div);
+    const contentBox = div.querySelector('.message-content');
+
+    if (isAssistant && stream) {
+      if(window.currentTypeWriter) clearInterval(window.currentTypeWriter);
+      let i = 0;
+      let textLen = content.length;
+      let tempBuffer = "";
+      
+      window.currentTypeWriter = setInterval(() => {
+        let chunk = content.substring(i, i + 5);
+        tempBuffer += chunk;
+        contentBox.innerHTML = formatText(tempBuffer);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        i += 5;
+        
+        if (tempBuffer.includes('![Generated Image](')) {
+          clearInterval(window.currentTypeWriter);
+          contentBox.innerHTML = formatText(content);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          return;
+        }
+        
+        if(i >= textLen) {
+          clearInterval(window.currentTypeWriter);
+          contentBox.innerHTML = formatText(content);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }, 15);
+    } else {
+      contentBox.innerHTML = formatText(content);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }
+
+  function appendTyping() {
+    emptyState.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'message typing-msg';
+    div.innerHTML = `
+      <div class="avatar assistant">
+        <img src="/logo.png" alt="Assistant">
+      </div>
+      <div class="message-content">
+        <div class="typing"><span></span><span></span><span></span></div>
+      </div>
+    `;
+    messagesInner.appendChild(div);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    return div;
+  }
+
+  function renderStagedImages() {
+    const stage = document.getElementById('attachmentsStaging');
+    stage.innerHTML = '';
+    stagedImages.forEach((imgUrl, idx) => {
+      let div = document.createElement('div');
+      div.style = "position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid var(--border-subtle); background:#000;";
+      div.innerHTML = `
+        <img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover;">
+        <button onclick="removeStaged(${idx})" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:#ff3366; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+      `;
+      stage.appendChild(div);
+    });
+  }
+
+  function removeStaged(idx) {
+    stagedImages.splice(idx, 1);
+    renderStagedImages();
+  }
+
+  async function handleFileUpload(e) {
+    const files = e.target.files;
+    for(let f of files) {
+      if(f.type.startsWith('image/')) {
+        let fd = new FormData();
+        fd.append('files', f);
+        try {
+           let r = await fetch(API_BASE + '/api/upload', { 
+             method: 'POST', 
+             body: fd,
+             headers: {
+               'ngrok-skip-browser-warning': 'true',
+               'Bypass-Tunnel-Reminder': 'true'
+             }
+           });
+           let d = await r.json();
+           stagedImages.push(d.files[0].url);
+           renderStagedImages();
+        } catch(ex){}
+      } else {
+        let reader = new FileReader();
+        reader.onload = (event) => {
+           let txt = event.target.result;
+           let ext = f.name.includes('.') ? f.name.split('.').pop() : 'txt';
+           messageInput.value += `\n\n\`\`\`${ext}\n${txt}\n\`\`\`\n`;
+           autoResize(messageInput);
+        };
+        reader.readAsText(f);
+      }
+    }
+  }
+
+  async function sendMessage() {
+    let text = messageInput.value.trim();
+    if (!text && stagedImages.length === 0 || isWaiting) return;
+
+    stagedImages.forEach(img => {
+      text += `\n![Uploaded Image](${img})\n`;
+    });
+
+    // UI Updates
+    messageInput.value = '';
+    messageInput.style.height = '54px';
+    stagedImages = [];
+    renderStagedImages();
+    isWaiting = true;
+
+    // Convert send to stop
+    sendBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+    sendBtn.classList.add('stop-btn');
+    sendBtn.onclick = stopGenerating;
+
+    // User Message
+    currentMessages.push({ role: 'user', content: text });
+    appendMessage('user', text);
+    saveChats();
+
+    const typingEl = appendTyping();
+    currentController = new AbortController();
+
+    // Prepare the live message bubble
+    let networkBuffer = '';
+    let renderedText = '';
+    let liveBubble = null;
+    let liveContentBox = null;
+    let streamFinished = false;
+
+    // Jitter buffer render loop (Exactly recreating old 15ms smoothness)
+    window.liveUpdateTimer = setInterval(() => {
+      if (liveContentBox && renderedText.length < networkBuffer.length) {
+        // Find how many characters we are behind
+        let diff = networkBuffer.length - renderedText.length;
+        // Pull up to 4 characters per tick (adjusts speed dynamically if lagging behind)
+        let pullCount = Math.max(1, Math.min(4, Math.floor(diff / 5)));
+        pullCount = diff < 4 ? diff : pullCount; 
+        
+        renderedText += networkBuffer.substring(renderedText.length, renderedText.length + pullCount);
+        liveContentBox.innerHTML = formatText(renderedText);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }, 15);
+
+    try {
+      const res = await fetch(API_BASE + '/api/chat/stream', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
+        body: JSON.stringify({ 
+          messages: currentMessages, 
+          modelParam: currentModelType 
+        }),
+        signal: currentController.signal
+      });
+
+      if (!res.ok) {
+        typingEl.remove();
+        const errorText = await res.text();
+        appendMessage('assistant', `**Error**: ${errorText}`);
+        resetSendButton();
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === 'token') {
+            // First token: remove typing indicator, create live bubble
+            if (!liveBubble) {
+              typingEl.remove();
+              emptyState.style.display = 'none';
+              liveBubble = document.createElement('div');
+              liveBubble.className = 'message';
+              liveBubble.style.position = 'relative';
+              const msgId = currentMessages.length; // will be the assistant index
+              liveBubble.innerHTML = `
+                <div class="avatar assistant">
+                  <img src="/logo.png" alt="Assistant">
+                </div>
+                <div class="message-content"></div>
+                <div class="msg-actions">
+                  <button class="msg-btn" onclick="copyMessageText(${msgId})" title="Copy">Copy</button>
+                  <button class="msg-btn" onclick="regenerateMessage(${msgId})" title="Regenerate">Regenerate</button>
+                </div>
+              `;
+              messagesInner.appendChild(liveBubble);
+              liveContentBox = liveBubble.querySelector('.message-content');
+            }
+
+            networkBuffer += event.token;
+
+          } else if (event.type === 'done') {
+            streamFinished = true;
+            clearInterval(window.liveUpdateTimer);
+            window.liveUpdateTimer = null;
+            // Stream finished - finalize
+            let finalResponse = event.response || networkBuffer;
+            if (event.images && event.images.length > 0) {
+              event.images.forEach(img => {
+                finalResponse += `\n\n![Generated Image](${img})\n`;
+              });
+            }
+
+            // Update live bubble with final content
+            if (liveContentBox) {
+              liveContentBox.innerHTML = formatText(finalResponse);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            currentMessages.push({ role: 'assistant', content: finalResponse });
+            saveChats();
+
+          } else if (event.type === 'error') {
+            streamFinished = true;
+            clearInterval(window.liveUpdateTimer);
+            window.liveUpdateTimer = null;
+            typingEl.remove();
+            appendMessage('assistant', `**Error**: ${event.error}`);
+          }
+        }
+      }
+
+      if (!liveBubble) {
+        streamFinished = true;
+        clearInterval(window.liveUpdateTimer);
+        typingEl.remove();
+        appendMessage('assistant', networkBuffer || '*(No response received)*');
+        currentMessages.push({ role: 'assistant', content: networkBuffer || '' });
+        saveChats();
+      }
+
+    } catch (err) {
+      streamFinished = true;
+      clearInterval(window.liveUpdateTimer);
+      window.liveUpdateTimer = null;
+      typingEl.remove();
+      if (err.name === 'AbortError') {
+        if (networkBuffer) {
+          currentMessages.push({ role: 'assistant', content: networkBuffer });
+          saveChats();
+        } else {
+          appendMessage('assistant', `*Generation stopped by user.*`);
+        }
+      } else {
+        appendMessage('assistant', `**System Error**: Could not reach backend.`);
+      }
+    } finally {
+      resetSendButton();
+    }
+  }
+
+  function stopGenerating() {
+    if (currentController) {
+      currentController.abort();
+    }
+    if (window.liveUpdateTimer) {
+      clearInterval(window.liveUpdateTimer);
+      window.liveUpdateTimer = null;
+    }
+    resetSendButton();
+  }
+
+  function resetSendButton() {
+    isWaiting = false;
+    sendBtn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>`;
+    sendBtn.classList.remove('stop-btn');
+    sendBtn.onclick = sendMessage;
+    sendBtn.disabled = false;
+  }
+</script>
+</body>
+</html>
