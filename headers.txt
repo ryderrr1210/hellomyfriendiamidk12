@@ -1,0 +1,18 @@
+HTTP/1.1 200 OK
+Date: Sat, 18 Apr 2026 12:42:00 GMT
+Content-Type: image/jpeg
+Content-Length: 33248
+Connection: keep-alive
+Access-Control-Allow-Origin: *
+Cache-Control: public, max-age=31536000, immutable
+Content-Disposition: inline; filename="red-car.jpg"
+X-Cache: HIT
+X-Cache-Type: EXACT
+Strict-Transport-Security: max-age=0; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+Speculation-Rules: "/cdn-cgi/speculation"
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=mqK02tQssY2enVBfx9IiNrhSNYMx2II5RvuNfaRMERNQRgq8X7XUQUYrp0iPTFwcqSjpAJj1fkLjmDVkqVMndmdYxtekyaDZ30PDGpteWeDZH%2FjEisN7erLWboWAnlRjGvBY93k2xLA%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: 9ee3bf3969441afc-AMS
+
